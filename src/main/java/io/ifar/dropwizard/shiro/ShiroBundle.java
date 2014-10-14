@@ -1,10 +1,12 @@
 package io.ifar.dropwizard.shiro;
 
+import java.util.EnumSet;
+import javax.servlet.DispatcherType;
+import io.dropwizard.Configuration;
+import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.setup.Bootstrap;
+import io.dropwizard.setup.Environment;
 import com.google.common.base.Optional;
-import com.yammer.dropwizard.ConfiguredBundle;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Configuration;
-import com.yammer.dropwizard.config.Environment;
 import org.apache.shiro.web.env.EnvironmentLoaderListener;
 import org.apache.shiro.web.servlet.ShiroFilter;
 import org.eclipse.jetty.server.session.SessionHandler;
@@ -14,8 +16,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A simple bundle class to initialze Shiro within Dropwizard.
  */
-public abstract class ShiroBundle<T extends Configuration>
-        implements ConfiguredBundle<T>, ConfigurationStrategy<T> {
+public abstract class ShiroBundle<T extends Configuration> implements ConfiguredBundle<T>, ConfigurationStrategy<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShiroBundle.class);
 
@@ -49,19 +50,20 @@ public abstract class ShiroBundle<T extends Configuration>
     private void initializeShiro(final ShiroConfiguration config, Environment environment) {
         if (config.isEnabled()) {
             LOG.debug("Shiro is enabled");
-
-            if (config.isDropwizardSessionHandler() && environment.getSessionHandler() == null) {
+            
+            if (config.isDropwizardSessionHandler()) {
                 LOG.debug("Adding DropWizard SessionHandler to environment.");
-                environment.setSessionHandler(new SessionHandler());
+                environment.getApplicationContext().setSessionHandler(new SessionHandler());
             }
 
             // This line ensure Shiro is configured and its .ini file found in the designated location.
             // e.g., via the shiroConfigLocations ContextParameter with fall-backs to default locations if that parameter isn't specified.
-            environment.addServletListeners(new EnvironmentLoaderListener());
+            environment.servlets().addServletListeners(new EnvironmentLoaderListener());
 
             final String filterUrlPattern = config.getSecuredUrlPattern();
             LOG.debug("ShiroFilter will check URLs matching '{}'.", filterUrlPattern);
-            environment.addFilter(new ShiroFilter(), filterUrlPattern).setName("shiro-filter");
+            
+            environment.servlets().addFilter("shiro-filter", new ShiroFilter()).addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, filterUrlPattern);
         } else {
             LOG.debug("Shiro is not enabled");
         }
