@@ -1,6 +1,7 @@
 package io.ifar.dropwizard.shiro;
 
 import io.dropwizard.Configuration;
+
 import com.google.common.base.Optional;
 
 /**
