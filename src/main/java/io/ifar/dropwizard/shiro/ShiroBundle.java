@@ -8,7 +8,9 @@ import io.dropwizard.setup.Environment;
 import java.util.EnumSet;
 
 import javax.servlet.DispatcherType;
+import javax.servlet.ServletContextEvent;
 
+import org.apache.shiro.web.env.EnvironmentLoader;
 import org.apache.shiro.web.env.EnvironmentLoaderListener;
 import org.apache.shiro.web.servlet.ShiroFilter;
 import org.eclipse.jetty.server.session.SessionHandler;
@@ -20,7 +22,8 @@ import com.google.common.base.Optional;
 /**
  * A simple bundle class to initialze Shiro within Dropwizard.
  */
-public abstract class ShiroBundle<T extends Configuration> implements ConfiguredBundle<T>, ConfigurationStrategy<T> {
+public abstract class ShiroBundle<T extends Configuration>
+        implements ConfiguredBundle<T>, ConfigurationStrategy<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShiroBundle.class);
 
@@ -62,7 +65,14 @@ public abstract class ShiroBundle<T extends Configuration> implements Configured
 
             // This line ensure Shiro is configured and its .ini file found in the designated location.
             // e.g., via the shiroConfigLocations ContextParameter with fall-backs to default locations if that parameter isn't specified.
-            environment.servlets().addServletListeners( new EnvironmentLoaderListener() );
+            environment.servlets().addServletListeners( new EnvironmentLoaderListener()
+            {
+                @Override
+                public void contextInitialized(ServletContextEvent sce) {
+                    sce.getServletContext().setInitParameter(EnvironmentLoader.CONFIG_LOCATIONS_PARAM, config.getIniConfigs());
+                    super.contextInitialized(sce);
+                }
+            });
 
             final String filterUrlPattern = config.getSecuredUrlPattern();
             LOG.debug("ShiroFilter will check URLs matching '{}'.", filterUrlPattern);
